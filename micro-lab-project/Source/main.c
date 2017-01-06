@@ -40,7 +40,7 @@ void initialization() {
 void timer1_init() {
     TCCR1B |= (1 << CS12) | (1 << CS10) | (1 << WGM12);  // set up timer with prescaler = 1024
     TCNT1 = 0;
-    OCR1A = 972;
+    OCR1A = 969;
     TIMSK |= (1 << OCIE1A);  // enable compare match interrupt
 
     second = minute = hour = day = 0;
@@ -64,23 +64,26 @@ int main() {
 	// TODO add mode in line 3
 	// TODO if alarm mode, how many movements detected. if autolighting status of lamp.
 
+	// TODO if between lcd command happening interrupt comes and in that interuppt we use another lcd command,
+	//      bad things will happen.
+
 	initialization();
 
 	while (1) {
 		// ------------------------- LED Blinking PORTC -------------------------
-		PORTC = 0xFF;
-		_delay_ms(50);
-
-		PORTC = 0x00;
-		_delay_ms(50);
-		// ------------------------- LED Blinking PORTC -------------------------
-
-
-		// ------------------------- PIR Sensor -------------------------
-		if ((PINB & (1 << PB0)) == (1 << PB0))
-			lcd_str_at(0, 4, "Yes");
-		else
-			lcd_str_at(0, 4, "No!");
+//		PORTC = 0xFF;
+//		_delay_ms(50);
+//
+//		PORTC = 0x00;
+//		_delay_ms(50);
+//		// ------------------------- LED Blinking PORTC -------------------------
+//
+//
+//		// ------------------------- PIR Sensor -------------------------
+//		if ((PINB & (1 << PB0)) == (1 << PB0))
+//			lcd_str_at(0, 4, "Yes");
+//		else
+//			lcd_str_at(0, 4, "No!");
 		// ------------------------- PIR Sensor -------------------------
 	}
 	return 0;
