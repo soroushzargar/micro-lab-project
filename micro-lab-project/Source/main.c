@@ -5,16 +5,12 @@
 #include "../Header/lcd.h"
 
 // ------------------------- Global Variables Definitions -------------------------
-unsigned char nums[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
 char data[17];
 
 uint8_t second, minute, hour;
-uint16_t day;
+uint8_t day;
 
-unsigned char mode = 0x00;  // Alarm mode
-//unsigned char mode = 0xFF;  // Auto lighting
-
-uint8_t mov_det_count;
+uint16_t mov_det_count;
 // ------------------------- Global Variables Definitions -------------------------
 
 
@@ -64,17 +60,15 @@ void ext_int2_init() {
 	MCUCSR |= (1 << ISC2);
 
 	GIMSK |= (1 << INT2); // Interrupt to activate INT2
-	GICR |= (1 << INT2); // Activate interrupt to INT2
+//	GICR |= (1 << INT2); // Activate interrupt to INT2
 
-	mov_det_count = -1;
+	mov_det_count = 0;
 
-	sprintf(data, "Num of Mov: %4u", ++mov_det_count);
+	sprintf(data, "Num of Mov: %4u", mov_det_count);
 	lcd_str_at(0, 4, data);
 }
 
 ISR(INT2_vect) {
-	_delay_ms(1);  // To catch interrupts that we don't want.
-
 	sprintf(data, "Num of Mov: %4u", ++mov_det_count);
 	lcd_str_at(0, 4, data);
 }
@@ -96,13 +90,8 @@ void initialization() {
 }
 
 int main() {
-	// TODO mode 1- alarm, 2- auto light on off
-	// TODO add temprature and light sensor in second row
-	// TODO add mode in line 3
-	// TODO if alarm mode, how many movements detected. if autolighting status of lamp.
-
-	// TODO if between lcd command happening interrupt comes and in that interuppt we use another lcd command,
-	//      bad things will happen.
+	// TODO Add temprature and light sensor in second row.
+	// TODO Add RFID
 
 	initialization();
 

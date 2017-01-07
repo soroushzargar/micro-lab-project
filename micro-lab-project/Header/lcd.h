@@ -31,18 +31,18 @@
 ////////////////////////////////////////////////////////////////////////////////
 // LCD Ausführungszeiten (MS=Millisekunden, US=Mikrosekunden)
 
-#define LCD_BOOTUP_MS           15
-#define LCD_ENABLE_US           20
-#define LCD_WRITEDATA_US        46
-#define LCD_COMMAND_US          42
+#define LCD_BOOTUP_MS           0  //15
+#define LCD_ENABLE_US           0  //20
+#define LCD_WRITEDATA_US        0  //46
+#define LCD_COMMAND_US          0  //42
 
-#define LCD_SOFT_RESET_MS1      5
-#define LCD_SOFT_RESET_MS2      1
-#define LCD_SOFT_RESET_MS3      1
-#define LCD_SET_4BITMODE_MS     5
+#define LCD_SOFT_RESET_MS1      0  //5
+#define LCD_SOFT_RESET_MS2      0  //1
+#define LCD_SOFT_RESET_MS3      0  //1
+#define LCD_SET_4BITMODE_MS     0  //5
 
-#define LCD_CLEAR_DISPLAY_MS    2
-#define LCD_CURSOR_HOME_MS      2
+#define LCD_CLEAR_DISPLAY_MS    0  //2
+#define LCD_CURSOR_HOME_MS      0  //2
 
 ////////////////////////////////////////////////////////////////////////////////
 // Zeilendefinitionen des verwendeten LCD
