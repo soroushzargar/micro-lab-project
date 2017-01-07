@@ -11,7 +11,7 @@ char time[17];
 uint8_t second, minute, hour;
 uint16_t day;
 
-uint16_t lm35result;
+char tempC, tempF;
 // ------------------------- Global Variables Definitions -------------------------
 
 
@@ -25,26 +25,14 @@ void lcd_char_at(uint8_t x, uint8_t y, uint8_t data) {
 	lcd_data(data);
 }
 
+void adc_init(){
+	DDRA = 0x00; // input for ADC
+	ADCSRA = 0x8F;			// Enable the ADC and its interrupt feature
+					// and set the ACD clock pre-scalar to clk/128
+	ADMUX = 0xE0;			// Select internal 2.56V as Vref, left justify
+					// data registers and select ADC0 as input channel
 
-
-
-uint16_t ReadADC(uint8_t ch)
-{
-   //Select ADC Channel ch must be 0-7
-   ch=ch&0b00000111;
-   ADMUX|=ch;
-
-   //Start Single conversion
-
-   ADCSRA|=(1<<ADSC);
-
-   //Wait for conversion to complete
-   while(!(ADCSRA & (1<<ADIF)));
-
-   //Clear ADIF by writing one to it
-   ADCSRA|=(1<<ADIF);
-
-   return(ADC);
+	ADCSRA |= 1<<ADSC;		// Start Conversion
 }
 
 void initialization() {
@@ -58,9 +46,7 @@ void initialization() {
 
 	timer1_init();
 
-	// ADC initialization
-	ADMUX=(1<<REFS0);// For Aref=AVcc;
-	ADCSRA=(1<<ADEN)|(7<<ADPS0);
+	adc_init();
 
 	sei();  // Enable global interrupt.
 }
@@ -88,9 +74,18 @@ ISR(TIMER1_COMPA_vect) {
 }
 
 
+/*ADC Conversion Complete Interrupt Service Routine (ISR)*/
 ISR(ADC_vect)
 {
-	lm35result = ReadADC(0); // the LM 35 is connected to ch 0
+	float tempff;
+
+	tempC = ADCH;			// Output ADCH to PortD
+	tempff = (float)tempC;
+	tempff = (tempff*9)/5 + 32;
+	tempF = tempff;
+
+	_delay_ms(500);
+	ADCSRA |= 1<<ADSC;		// Start Conversion
 }
 
 
