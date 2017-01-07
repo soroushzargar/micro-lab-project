@@ -11,14 +11,10 @@ char data[17];
 uint8_t second, minute, hour;
 uint16_t day;
 
-<<<<<<< HEAD
 unsigned char mode = 0x00;  // Alarm mode
 //unsigned char mode = 0xFF;  // Auto lighting
 
 uint8_t mov_det_count;
-=======
-char tempC, tempF;
->>>>>>> f526872c1c7562243841ef56990052f50bf205aa
 // ------------------------- Global Variables Definitions -------------------------
 
 
@@ -32,7 +28,6 @@ void lcd_char_at(uint8_t x, uint8_t y, uint8_t data) {
 	lcd_data(data);
 }
 
-<<<<<<< HEAD
 void timer1_init() {
     TCCR1B |= (1 << CS12) | (1 << CS10) | (1 << WGM12);  // set up timer with prescaler = 1024
     TCNT1 = 0;
@@ -82,16 +77,6 @@ ISR(INT2_vect) {
 
 	sprintf(data, "Num of Mov: %4u", ++mov_det_count);
 	lcd_str_at(0, 4, data);
-=======
-void adc_init(){
-	DDRA = 0x00; // input for ADC
-	ADCSRA = 0x8F;			// Enable the ADC and its interrupt feature
-					// and set the ACD clock pre-scalar to clk/128
-	ADMUX = 0xE0;			// Select internal 2.56V as Vref, left justify
-					// data registers and select ADC0 as input channel
-
-	ADCSRA |= 1<<ADSC;		// Start Conversion
->>>>>>> f526872c1c7562243841ef56990052f50bf205aa
 }
 
 void initialization() {
@@ -105,56 +90,11 @@ void initialization() {
 
 	timer1_init();
 
-<<<<<<< HEAD
 	ext_int2_init();
-=======
-	adc_init();
->>>>>>> f526872c1c7562243841ef56990052f50bf205aa
 
 	sei();  // Enable global interrupt.
 }
 
-<<<<<<< HEAD
-=======
-// initialize timer, interrupt and variable
-void timer1_init() {
-    TCCR1B |= (1 << CS12) | (1 << CS10) | (1 << WGM12);  // set up timer with prescaler = 1024
-    TCNT1 = 0;
-    OCR1A = 969;
-    TIMSK |= (1 << OCIE1A);  // enable compare match interrupt
-
-    second = minute = hour = day = 0;
-}
-
-ISR(TIMER1_COMPA_vect) {
-	// A second forward.
-	second++;
-	minute += second / 60;        second %= 60;
-	hour += minute / 60;          minute %= 60;
-	day += hour / 24;             hour %= 24;
-
-	// Viewing on LCD.
-	sprintf(time, "Time:%2u %2.2u:%2.2u:%2.2u", day, hour, minute, second);
-	lcd_str_at(0, 1, time);
-}
-
-
-/*ADC Conversion Complete Interrupt Service Routine (ISR)*/
-ISR(ADC_vect)
-{
-	float tempff;
-
-	tempC = ADCH;			// Output ADCH to PortD
-	tempff = (float)tempC;
-	tempff = (tempff*9)/5 + 32;
-	tempF = tempff;
-
-	_delay_ms(500);
-	ADCSRA |= 1<<ADSC;		// Start Conversion
-}
-
-
->>>>>>> f526872c1c7562243841ef56990052f50bf205aa
 int main() {
 	// TODO mode 1- alarm, 2- auto light on off
 	// TODO add temprature and light sensor in second row
