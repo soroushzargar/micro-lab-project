@@ -15,6 +15,7 @@ unsigned char mode = 0x00;  // Alarm mode
 //unsigned char mode = 0xFF;  // Auto lighting
 
 uint8_t mov_det_count;
+uint16_t lm35result;
 // ------------------------- Global Variables Definitions -------------------------
 
 
@@ -28,6 +29,40 @@ void lcd_char_at(uint8_t x, uint8_t y, uint8_t data) {
 	lcd_data(data);
 }
 
+uint16_t ReadADC(uint8_t ch)
+{
+   //Select ADC Channel ch must be 0-7
+   ch = ch&0b00000111;
+   ADMUX |= ch;
+
+   //Start Single conversion
+
+   ADCSRA |= (1 << ADSC);
+
+   //Wait for conversion to complete
+   while (!(ADCSRA & (1<<ADIF)));
+
+   //Clear ADIF by writing one to it
+   ADCSRA |= (1<<ADIF);
+
+   return ADC;
+}
+
+void initialization() {
+	DDRB = 0x00;  // Input for PIR sensor.
+
+	DDRC = 0xFF;
+	PORTC = 0xFF;
+
+	lcd_init();
+
+	timer1_init();
+
+
+	sei();  // Enable global interrupt.
+}
+
+// initialize timer, interrupt and variable
 void timer1_init() {
     TCCR1B |= (1 << CS12) | (1 << CS10) | (1 << WGM12);  // set up timer with prescaler = 1024
     TCNT1 = 0;
@@ -80,6 +115,7 @@ ISR(INT2_vect) {
 }
 
 void initialization() {
+	DDRA = 0x00;  // Input for ADC -- LM35
 	DDRB = 0x00;  // Input for PIR sensor to INT2.
 	PORTB = 0xFF;
 
@@ -92,8 +128,19 @@ void initialization() {
 
 	ext_int2_init();
 
+	// ADC initialization
+	ADMUX = (1 << REFS0);// For Aref=AVcc;
+	ADCSRA = (1 << ADEN) | (7 << ADPS0);
+
 	sei();  // Enable global interrupt.
 }
+
+
+ISR(ADC_vect)
+{
+	lm35result = ReadADC(0); // the LM 35 is connected to ch 0
+}
+
 
 int main() {
 	// TODO mode 1- alarm, 2- auto light on off
@@ -107,6 +154,5 @@ int main() {
 	initialization();
 
 	while (1);
-
 	return 0;
 }
