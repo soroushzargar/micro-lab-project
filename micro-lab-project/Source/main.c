@@ -51,10 +51,10 @@ ISR(TIMER1_COMPA_vect) {
 	lcd_str_at(0, 1, data);
 
 	// PIR Sensor Status
-	if ((PINB & (1 << PB2)) == (1 << PB2))
-		lcd_str_at(13, 3, "Yes");
-	else
-		lcd_str_at(13, 3, "No!");
+//	if ((PINB & (1 << PB2)) == (1 << PB2))
+//		lcd_str_at(13, 3, "Yes");
+//	else
+//		lcd_str_at(13, 3, "No!");
 
 	// Light Sensor
 	sprintf(data, "Light: %9u", light);
@@ -84,19 +84,21 @@ ISR(INT2_vect) {
 }
 
 void adc_init() {
-	ADMUX |= (1<<REFS0)|(1<<REFS1);
-	ADCSRA |= (1<<ADEN)|(1<<ADATE)|(1<<ADPS0)|(1<<ADPS1)|(1<<ADPS2);
+	ADMUX  |= (1 << REFS0) | (1 << REFS1);
+	ADCSRA |= (1 << ADEN) | (1 << ADATE) | (1 << ADPS0) | (1 << ADPS1) | (1 << ADPS2);
 }
 
 void initialization() {
 	DDRA = 0x00;
-	PORTA = 0xFF;
+//	PORTA = 0xFF;
 
 	DDRB = 0x00;  // Input for PIR sensor to INT2.
 	PORTB = 0xFF;
 
 	DDRC = 0xFF;
 	PORTC = 0xFF;
+
+	MCUCSR |= (1 << JTD);  // Disable J Tag
 
 	lcd_init();
 
@@ -118,19 +120,20 @@ int main() {
 	while (1) {
 		// Reading light sensor
 		ADMUX &= (~(1 << MUX0));
-		ADMUX |= (1 << REFS1);
+//		ADMUX |= (1 << REFS1);
 		ADCSRA |= (1 << ADSC);
-		_delay_ms(25);
+		_delay_ms(200);
 		light = ADC;
 		ADCSRA &= (~(1 << ADSC));
 
+		_delay_ms(100);
+
 		// Reading temperature sensor
 		ADMUX |= (1 << MUX0);
-		ADMUX &= (~(1 << REFS1));
+//		ADMUX &= (~(1 << REFS1));
 		ADCSRA |= (1 << ADSC);
-		_delay_ms(25);
-		temperature = ADC / 4;
-		temperature = (temperature * 250)/1024;
+		_delay_ms(200);
+		temperature = ADC;
 		ADCSRA &= (~(1 << ADSC));
 	}
 
