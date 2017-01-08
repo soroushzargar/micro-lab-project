@@ -11,6 +11,8 @@ uint8_t second, minute, hour;
 uint8_t day;
 
 uint16_t mov_det_count;
+
+uint16_t light, temperature;
 // ------------------------- Global Variables Definitions -------------------------
 
 
@@ -53,6 +55,14 @@ ISR(TIMER1_COMPA_vect) {
 		lcd_str_at(13, 3, "Yes");
 	else
 		lcd_str_at(13, 3, "No!");
+
+	// Light Sensor
+	sprintf(data, "Light: %9u", light);
+	lcd_str_at(0, 2, data);
+
+	// Temperature Sensor
+	sprintf(data, "Temperature:%4u", temperature);
+	lcd_str_at(0, 3, data);
 }
 
 void ext_int2_init() {
@@ -73,6 +83,11 @@ ISR(INT2_vect) {
 	lcd_str_at(0, 4, data);
 }
 
+void adc_init() {
+	ADMUX |= (1<<REFS0)|(1<<REFS1);
+	ADCSRA |= (1<<ADEN)|(1<<ADATE)|(1<<ADPS0)|(1<<ADPS1)|(1<<ADPS2);
+}
+
 void initialization() {
 	DDRA = 0x00;
 	PORTA = 0xFF;
@@ -89,6 +104,8 @@ void initialization() {
 
 	ext_int2_init();
 
+	adc_init();
+
 	sei();  // Enable global interrupt.
 }
 
@@ -98,17 +115,23 @@ int main() {
 
 	initialization();
 
-	ADMUX |= (1<<REFS0)|(1<<REFS1);
-	ADCSRA |= (1<<ADEN)|(1<<ADATE)|(1<<ADPS0)|(1<<ADPS1)|(1<<ADPS2);
-
-	ADCSRA |= (1<<ADSC);
-
-	uint16_t adc_data;
 	while (1) {
-		adc_data = ADC;
-		sprintf(data, "%4u", adc_data);
-		lcd_str_at(0, 2, data);
-		_delay_ms(100);
+		// Reading light sensor
+		ADMUX &= (~(1 << MUX0));
+		ADMUX |= (1 << REFS1);
+		ADCSRA |= (1 << ADSC);
+		_delay_ms(25);
+		light = ADC;
+		ADCSRA &= (~(1 << ADSC));
+
+		// Reading temperature sensor
+		ADMUX |= (1 << MUX0);
+		ADMUX &= (~(1 << REFS1));
+		ADCSRA |= (1 << ADSC);
+		_delay_ms(25);
+		temperature = ADC / 4;
+		temperature = (temperature * 250)/1024;
+		ADCSRA &= (~(1 << ADSC));
 	}
 
 	return 0;
