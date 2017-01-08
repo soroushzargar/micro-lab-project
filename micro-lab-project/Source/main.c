@@ -74,6 +74,9 @@ ISR(INT2_vect) {
 }
 
 void initialization() {
+	DDRA = 0x00;
+	PORTA = 0xFF;
+
 	DDRB = 0x00;  // Input for PIR sensor to INT2.
 	PORTB = 0xFF;
 
@@ -95,7 +98,18 @@ int main() {
 
 	initialization();
 
-	while (1);
+	ADMUX |= (1<<REFS0)|(1<<REFS1);
+	ADCSRA |= (1<<ADEN)|(1<<ADATE)|(1<<ADPS0)|(1<<ADPS1)|(1<<ADPS2);
+
+	ADCSRA |= (1<<ADSC);
+
+	uint16_t adc_data;
+	while (1) {
+		adc_data = ADC;
+		sprintf(data, "%4u", adc_data);
+		lcd_str_at(0, 2, data);
+		_delay_ms(100);
+	}
 
 	return 0;
 }
