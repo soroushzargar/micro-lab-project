@@ -3,6 +3,10 @@
 #include <avr/interrupt.h>
 #include <stdio.h>
 #include "../Header/lcd.h"
+#include "../Header/utils.h"
+#include "../Header/spi.h"
+#include "../Header/mfrc522.h"
+
 
 // ------------------------- Global Variables Definitions -------------------------
 char data[17];
@@ -12,10 +16,15 @@ uint8_t day;
 
 uint16_t mov_det_count;
 
-uint16_t light, temperature;
+uint8_t light, temperature;
+
+uint8_t SelfTestBuffer[64];
+uint8_t my_isfahan_cart[5] = {0x84, 0x51, 0x7d, 0xd9, 0x71}, bytes_to_comp = 5, match;
+uint8_t locked = 0x00;
 // ------------------------- Global Variables Definitions -------------------------
 
 
+// ------------------------- Working With LCD -------------------------
 void lcd_str_at(uint8_t x, uint8_t y, const char* data) {
 	lcd_setcursor(x, y);
 	lcd_string(data);
@@ -24,6 +33,29 @@ void lcd_str_at(uint8_t x, uint8_t y, const char* data) {
 void lcd_char_at(uint8_t x, uint8_t y, uint8_t data) {
 	lcd_setcursor(x, y);
 	lcd_data(data);
+}
+// ------------------------- Working With LCD -------------------------
+
+
+// ------------------------- Timer 1 -------------------------
+void timer1_view() {
+	// Viewing on LCD.
+	sprintf(data, "Time:%2u %02u:%02u:%02u", day, hour, minute, second);
+	lcd_str_at(0, 1, data);
+
+	// PIR Sensor Status
+	//	if ((PINB & (1 << PB2)) == (1 << PB2))
+	//		lcd_str_at(13, 3, "Yes");
+	//	else
+	//		lcd_str_at(13, 3, "No!");
+
+	// Light & Temperature Sensor
+	sprintf(data, "L:%02u,T:%02u,", light, temperature);
+	lcd_str_at(0, 2, data);
+
+	// Lock Status
+	if (locked) lcd_str_at(0, 3, "**** Locked ****");
+	else lcd_str_at(0, 3, "*** Unlocked ***");
 }
 
 void timer1_init() {
@@ -34,9 +66,7 @@ void timer1_init() {
 
     second = minute = hour = day = 0;
 
-    // Viewing on LCD.
-	sprintf(data, "Time:%2u %2.2u:%2.2u:%2.2u", day, hour, minute, second);
-	lcd_str_at(0, 1, data);
+    timer1_view();
 }
 
 ISR(TIMER1_COMPA_vect) {
@@ -46,60 +76,37 @@ ISR(TIMER1_COMPA_vect) {
 	hour += minute / 60;          minute %= 60;
 	day += hour / 24;             hour %= 24;
 
-	// Viewing on LCD.
-	sprintf(data, "Time:%2u %2.2u:%2.2u:%2.2u", day, hour, minute, second);
-	lcd_str_at(0, 1, data);
+	timer1_view();
+}
+// ------------------------- Timer 1 -------------------------
 
-	// PIR Sensor Status
-//	if ((PINB & (1 << PB2)) == (1 << PB2))
-//		lcd_str_at(13, 3, "Yes");
-//	else
-//		lcd_str_at(13, 3, "No!");
 
-	// Light Sensor
-	sprintf(data, "Light: %9u", light);
-	lcd_str_at(0, 2, data);
-
-	// Temperature Sensor
-	sprintf(data, "Temperature:%4u", temperature);
-	lcd_str_at(0, 3, data);
+// ------------------------- PIR Sensor -------------------------
+void pir_view() {
+	sprintf(data, "#M:%03u", ++mov_det_count);
+	lcd_str_at(10, 2, data);
 }
 
 void ext_int2_init() {
 	// Interrupt on rising edge
 	MCUCSR |= (1 << ISC2);
-
 	GIMSK |= (1 << INT2); // Interrupt to activate INT2
-//	GICR |= (1 << INT2); // Activate interrupt to INT2
+	mov_det_count = -1;
 
-	mov_det_count = 0;
-
-	sprintf(data, "Num of Mov: %4u", mov_det_count);
-	lcd_str_at(0, 4, data);
+	pir_view();
 }
 
 ISR(INT2_vect) {
-	sprintf(data, "Num of Mov: %4u", ++mov_det_count);
-	lcd_str_at(0, 4, data);
+	pir_view();
 }
 
 void adc_init() {
 	ADMUX  |= (1 << REFS0) | (1 << REFS1);
 	ADCSRA |= (1 << ADEN) | (1 << ADATE) | (1 << ADPS0) | (1 << ADPS1) | (1 << ADPS2);
 }
+// ------------------------- PIR Sensor -------------------------
 
 void initialization() {
-	DDRA = 0x00;
-//	PORTA = 0xFF;
-
-	DDRB = 0x00;  // Input for PIR sensor to INT2.
-	PORTB = 0xFF;
-
-	DDRC = 0xFF;
-	PORTC = 0xFF;
-
-	MCUCSR |= (1 << JTD);  // Disable J Tag
-
 	lcd_init();
 
 	timer1_init();
@@ -108,32 +115,63 @@ void initialization() {
 
 	adc_init();
 
+	spi_init();
+
+	mfrc522_init();
+
+	// Ports configuration
+	DDRA = 0x00;
+	DDRB  &= (~(1 << PB2));  // Input for PIR sensor to INT2.
+
 	sei();  // Enable global interrupt.
 }
 
 int main() {
-	// TODO Add temprature and light sensor in second row.
-	// TODO Add RFID
+	// TODO Change INT2 to another INTx because of PORTB SPI->RFID mission.
+	// TODO Write a function to show all data on lcd with timer0 triggering it.
+	// TODO Write a function to show row 4 of lcd information with very long sring. Animating string that move to left.
 
 	initialization();
 
+	uint8_t byte;
+	uint8_t str[MAX_LEN];
+
+	byte = mfrc522_read(ComIEnReg);
+	mfrc522_write(ComIEnReg,byte|0x20);
+	byte = mfrc522_read(DivIEnReg);
+	mfrc522_write(DivIEnReg,byte|0x80);
+
 	while (1) {
+		byte = mfrc522_request(PICC_REQALL,str);
+
+		if(byte == CARD_FOUND)
+		{
+			byte = mfrc522_get_card_serial(str);
+			if(byte == CARD_FOUND) {
+				match = 0xff;
+				for (byte = 0; byte < bytes_to_comp; ++byte)
+					if (str[byte] != my_isfahan_cart[byte]) {
+						match = 0x00;
+						break;
+					}
+				if (match) locked = ~locked;
+			}
+		}
+
 		// Reading light sensor
 		ADMUX &= (~(1 << MUX0));
-//		ADMUX |= (1 << REFS1);
 		ADCSRA |= (1 << ADSC);
-		_delay_ms(200);
-		light = ADC;
+		_delay_ms(80);
+		light = ADC >> 4;
 		ADCSRA &= (~(1 << ADSC));
 
-		_delay_ms(100);
+		_delay_ms(20);
 
 		// Reading temperature sensor
 		ADMUX |= (1 << MUX0);
-//		ADMUX &= (~(1 << REFS1));
 		ADCSRA |= (1 << ADSC);
-		_delay_ms(200);
-		temperature = ADC;
+		_delay_ms(80);
+		temperature = ADC >> 4;
 		ADCSRA &= (~(1 << ADSC));
 	}
 
